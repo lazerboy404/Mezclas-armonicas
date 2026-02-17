@@ -11,7 +11,7 @@ from glob import glob
 from contextlib import contextmanager
 import csv
 
-# Suppress warnings from libraries
+# Silenciar advertencias de librerías
 warnings.filterwarnings("ignore")
 
 try:
@@ -35,14 +35,12 @@ try:
     from colorama import Fore, Back, Style
 except ImportError as e:
     print(f"Error crítico: Falta la librería {e.name}.")
-    print("Por favor, ejecuta: pip install -r requirements.txt")
+    print("Por favor, confirma que esté en requirements.txt")
     sys.exit(1)
 
-# Variables globales para control de errores
+# Variables globales y configuración
 FFMPEG_ERROR_SHOWN = False
 CACHE_FILE = "audio_analysis_cache.json"
-
-print(f"{Fore.CYAN}Archivo de caché: {os.path.abspath(CACHE_FILE)}{Style.RESET_ALL}")
 
 @contextmanager
 def suppress_stderr():
@@ -60,28 +58,14 @@ def suppress_stderr():
     except Exception:
         yield
 
-def load_cache():
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def save_cache(cache):
-    try:
-        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(cache, f, indent=4)
-    except Exception as e:
-        print(f"Error guardando caché: {e}")
-
+# Inicializar colorama
 colorama.init(autoreset=True)
 
 # Perfiles de tonalidad (Krumhansl-Schmuckler)
 MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
 MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
 
+# Mapeo a Rueda de Camelot
 CAMELOT_MAJOR = {
     0: '8B',  1: '3B',  2: '10B', 3: '5B',  4: '12B', 5: '7B',
     6: '2B',  7: '9B',  8: '4B',  9: '11B', 10: '6B', 11: '1B'
@@ -92,7 +76,10 @@ CAMELOT_MINOR = {
 }
 NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
+# --- FUNCIONES DE ANÁLISIS ---
+
 def estimate_key(y, sr):
+    """Estima la tonalidad y retorna (Nota, Escala, Camelot)."""
     try:
         chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
         chroma_vals = np.sum(chroma, axis=1)
@@ -109,238 +96,109 @@ def estimate_key(y, sr):
         best_major_idx = np.argmax(corrs_major)
         best_minor_idx = np.argmax(corrs_minor)
         
-        max_major = corrs_major[best_major_idx]
-        max_minor = corrs_minor[best_minor_idx]
-        
-        if max_major > max_minor:
-            key_idx = best_major_idx
-            scale = 'Major'
-            camelot = CAMELOT_MAJOR[key_idx]
+        if corrs_major[best_major_idx] > corrs_minor[best_minor_idx]:
+            return f"{NOTE_NAMES[best_major_idx]} Major", CAMELOT_MAJOR[best_major_idx]
         else:
-            key_idx = best_minor_idx
-            scale = 'Minor'
-            camelot = CAMELOT_MINOR[key_idx]
-            
-        return f"{NOTE_NAMES[key_idx]} {scale}", camelot
-    except Exception as e:
+            return f"{NOTE_NAMES[best_minor_idx]} Minor", CAMELOT_MINOR[best_minor_idx]
+    except Exception:
         return "Unknown", "---"
 
 def get_audio_info(filepath, calculate_gain=True):
-    global FFMPEG_ERROR_SHOWN
-    
+    """Obtiene información técnica, ganancia, BPM y Key del archivo."""
     info = {
         'path': filepath,
         'filename': os.path.basename(filepath),
-        'folder': os.path.dirname(filepath),
         'bitrate': 0,
-        'samplerate': 0,
         'duration': 0,
         'dbfs': -99.0,
         'key': 'Unknown',
         'camelot': '---',
-        'bpm': 0,
-        'artist': 'Unknown',
-        'title': 'Unknown',
-        'album': 'Unknown'
+        'bpm': 0
     }
 
     try:
-        filepath = os.path.normpath(filepath)
         audio = mutagen.File(filepath)
+        if audio and hasattr(audio.info, 'length'):
+            info['duration'] = audio.info.length
         
-        if audio:
-            if hasattr(audio.info, 'length'):
-                info['duration'] = audio.info.length
-            if hasattr(audio.info, 'bitrate') and audio.info.bitrate:
-                info['bitrate'] = audio.info.bitrate
-            if hasattr(audio.info, 'sample_rate'):
-                info['samplerate'] = audio.info.sample_rate
-
-            def get_tag(keys):
-                for k in keys:
-                    if hasattr(audio, 'tags') and audio.tags:
-                        if k in audio.tags: return str(audio.tags[k][0])
-                        if k.upper() in audio.tags: return str(audio.tags[k.upper()][0])
-                    if k in audio: return str(audio[k][0])
-                return None
-
-            artist = get_tag(['artist', 'TPE1', 'IART'])
-            title = get_tag(['title', 'TIT2', 'INAM'])
-            album = get_tag(['album', 'TALB', 'IPRD'])
-
-            if artist: info['artist'] = artist
-            if title: info['title'] = title
-            if album: info['album'] = album
-
         if calculate_gain:
             try:
                 with suppress_stderr():
                     seg = AudioSegment.from_file(filepath)
                 info['dbfs'] = seg.dBFS
                 
-                if info['bitrate'] == 0 and info['duration'] > 0:
-                    file_size = os.path.getsize(filepath)
-                    info['bitrate'] = (file_size * 8) / info['duration']
+                # Análisis de fragmento de 30 segundos para Key y BPM
+                y, sr = librosa.load(filepath, sr=None, offset=max(0, info['duration']/2 - 15), duration=30)
                 
-                duration = info['duration']
-                offset_sec = max(0, duration/2 - 30)
-                
-                print(f"   [{os.path.basename(filepath)}] Analizando fragmento...")
-                
-                start_ms = int(offset_sec * 1000)
-                end_ms = start_ms + 30000
-                chunk = seg[start_ms:end_ms]
-                
-                samples = np.array(chunk.get_array_of_samples())
-                if chunk.channels == 2:
-                    samples = samples.reshape((-1, 2))
-                    y = samples.mean(axis=1)
-                else:
-                    y = samples
-                
-                y = y.astype(np.float32) / 32768.0
-                sr = chunk.frame_rate
-                
-                if len(y.shape) > 1: y = y.flatten()
-                y = np.ascontiguousarray(y)
-                
-                try:
-                    key_name, camelot_code = estimate_key(y, sr)
-                except Exception as e:
-                    print(f"   Error estimando tonalidad: {e}")
-                    key_name, camelot_code = 'Unknown', '---'
-                
+                key_name, camelot_code = estimate_key(y, sr)
                 info['key'] = key_name
                 info['camelot'] = camelot_code
 
-                try:
-                    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-                    if isinstance(tempo, np.ndarray):
-                        tempo = tempo[0] if tempo.size > 0 else 0
-                    info['bpm'] = round(tempo)
-                except Exception as e:
-                     print(f"   Error estimando BPM: {e}")
-                     info['bpm'] = 0
+                tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+                info['bpm'] = round(float(tempo)) if isinstance(tempo, (float, int, np.ndarray)) else 0
                 
-            except (FileNotFoundError, OSError) as e:
+            except Exception:
                 pass
-            except Exception as e:
-                pass
-
     except Exception as e:
-        print(f"\nError leyendo {os.path.basename(filepath)}: {e}")
+        print(f"Error procesando {os.path.basename(filepath)}: {e}")
     
     return info
 
-def scan_directory(directories, calculate_gain=True, callback=None):
-    files = []
-    extensions = ['*.mp3', '*.wav', '*.flac', '*.m4a']
-    audio_files = []
-    
-    if isinstance(directories, str):
-        directories = [directories]
-    
-    for directory in directories:
-        for ext in extensions:
-            pattern = os.path.join(directory, '**', ext)
-            found = glob(pattern, recursive=True)
-            audio_files.extend(found)
-    
-    audio_files = list(set([os.path.abspath(f) for f in audio_files]))
-    print(Fore.CYAN + f"Encontrados {len(audio_files)} archivos." + Style.RESET_ALL)
-    
-    cache = load_cache()
-    files_to_analyze = []
-    cached_count = 0
-    
-    for f_path in audio_files:
-        try:
-            mtime = os.path.getmtime(f_path)
-            size = os.path.getsize(f_path)
-            
-            if f_path in cache:
-                cached_data = cache[f_path]
-                info = cached_data.get('info', {})
-                if cached_data.get('mtime') == mtime and cached_data.get('size') == size:
-                    if calculate_gain and info.get('dbfs', -99.0) == -99.0:
-                        files_to_analyze.append(f_path)
-                    else:
-                        files.append(info)
-                        cached_count += 1
-                    continue
-            files_to_analyze.append(f_path)
-        except OSError:
-            pass
+# --- LÓGICA DE COMPATIBILIDAD CAMELOT (RESTAURADA) ---
 
-    if files_to_analyze:
-        print(Fore.CYAN + f"Analizando {len(files_to_analyze)} archivos nuevos..." + Style.RESET_ALL)
-        # En servidor web tqdm puede ensuciar los logs, pero lo dejamos opcional
-        iterator = tqdm(files_to_analyze) if sys.stdout.isatty() else files_to_analyze
-        for f in iterator:
-            if callback: callback(f)
-            info = get_audio_info(f, calculate_gain)
-            files.append(info)
-            try:
-                cache[f] = {
-                    'mtime': os.path.getmtime(f),
-                    'size': os.path.getsize(f),
-                    'info': info
-                }
-            except: pass
-        save_cache(cache)
-        
-    return files
-
-def print_report(files):
-    sorted_files = sorted(files, key=lambda x: (x['bitrate'], x['dbfs']), reverse=True)
-    return sorted_files
-
-def export_csv(files, filename="reporte_audio.csv"):
-    keys = ['filename', 'artist', 'title', 'album', 'bitrate', 'samplerate', 'duration', 'dbfs', 'bpm', 'key', 'camelot', 'path']
+def get_compatible_keys(camelot_code):
+    """Retorna lista de claves compatibles según la Rueda de Camelot."""
+    if not camelot_code or camelot_code == '---':
+        return []
+    
     try:
-        with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=keys)
-            writer.writeheader()
-            for file in files:
-                row = {k: file.get(k, '') for k in keys}
-                writer.writerow(row)
-    except Exception as e:
-        print(Fore.RED + f"Error exportando CSV: {e}" + Style.RESET_ALL)
+        match = re.match(r"(\d+)([AB])", camelot_code)
+        if not match:
+            return []
+            
+        number = int(match.group(1))
+        letter = match.group(2)
+    except:
+        return []
+        
+    compatible = [camelot_code]
+    
+    # Relativa (A <-> B)
+    other_letter = 'B' if letter == 'A' else 'A'
+    compatible.append(f"{number}{other_letter}")
+    
+    # +/- 1 (Mismo anillo)
+    plus_one = number + 1 if number < 12 else 1
+    minus_one = number - 1 if number > 1 else 12
+    
+    compatible.append(f"{plus_one}{letter}")
+    compatible.append(f"{minus_one}{letter}")
+    
+    return compatible
 
-# --- FUNCIONES MODIFICADAS PARA WEB ---
+def parse_camelot_code(code):
+    """Separa el número y la letra del código Camelot."""
+    try:
+        match = re.match(r"(\d+)([AB])", code)
+        if match:
+            return int(match.group(1)), match.group(2)
+    except:
+        pass
+    return None, None
 
-def select_folder():
-    """Versión segura para servidor (sin ventana emergente)."""
-    print("ADVERTENCIA: Selección de carpeta interactiva no disponible en servidor web.")
-    return None
+# --- FUNCIONES DE SOPORTE Y NEUTRALIZACIÓN ---
 
-def select_multiple_folders():
-    """Versión segura para servidor (sin ventana emergente)."""
-    print("ADVERTENCIA: Selección de carpetas interactiva no disponible en servidor web.")
-    return []
+def load_cache():
+    return json.load(open(CACHE_FILE, 'r', encoding='utf-8')) if os.path.exists(CACHE_FILE) else {}
 
-# --------------------------------------
+def save_cache(cache):
+    json.dump(cache, open(CACHE_FILE, 'w', encoding='utf-8'), indent=4)
+
+def select_folder(): return None
+def select_multiple_folders(): return []
 
 def main():
-    # En entorno web, main() raramente se llama, pero lo mantenemos seguro.
-    parser = argparse.ArgumentParser(description="Herramienta de análisis audio")
-    parser.add_argument('--path', help='Directorio a escanear')
-    args = parser.parse_args()
-
-    target_paths = [args.path] if args.path else []
-    
-    if not target_paths:
-        # En servidor no podemos preguntar interactivamente con input() si no hay terminal
-        if not sys.stdin.isatty():
-            print("Modo no interactivo: Se requiere argumento --path")
-            return
-            
-        print("Modo interactivo (CLI Local)")
-        # Aquí podrías poner lógica de input() solo si estás en local
-        target_paths = ['.']
-
-    files = scan_directory(target_paths)
-    print_report(files)
+    print("Módulo audio_manager cargado correctamente para producción.")
 
 if __name__ == "__main__":
     main()

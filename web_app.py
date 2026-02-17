@@ -221,8 +221,8 @@ def find_matches(track, allowed_folders=None):
             except ValueError:
                 priority = 99
                 
-            # BPM diff
-            bpm_diff = abs(candidate['bpm'] - track['bpm'])
+            # BPM diff (Principal - Sugerida) para ajustar la sugerida
+            bpm_diff = track['bpm'] - candidate['bpm']
             
             # PRIORIDAD 1: Misma carpeta (más importante que todo)
             candidate_folder = candidate.get('folder', os.path.dirname(candidate['path']) if candidate['path'] else '')
@@ -270,8 +270,8 @@ def find_matches(track, allowed_folders=None):
                 'same_folder_priority': same_folder_priority  # Prioridad de misma carpeta
             })
             
-    # Ordenar: Primero misma carpeta, luego compatibilidad armónica, luego diferencia BPM
-    matches.sort(key=lambda x: (x['same_folder_priority'], x['priority'], x['bpm_diff']))
+    # Ordenar: Primero misma carpeta, luego compatibilidad armónica, luego diferencia BPM (absoluta)
+    matches.sort(key=lambda x: (x['same_folder_priority'], x['priority'], abs(x['bpm_diff'])))
     return matches
 
 # --- Playlist API ---

@@ -8,4 +8,6 @@ tqdm==4.66.1
 firebase-admin==6.5.0
 google-cloud-firestore==2.15.0
 gunicorn==21.2.0
-matplotlibcolorama 
+matplotlib
+colorama 
+colorama 

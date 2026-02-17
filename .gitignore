@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+output.log
+
+# Vercel (si decides no usarlo)
+.vercel/
+.vercelignore
+vercel.json
+
+# Archivos de desarrollo local
+check_setup.py
+library_config.json
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Carpeta api duplicada
+api/"firebase-service-account.json" 
+firebase-service-account.json 

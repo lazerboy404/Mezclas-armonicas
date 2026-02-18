@@ -666,8 +666,10 @@
                 if (priorityA !== priorityB) {
                     return priorityA - priorityB;
                 }
-                // Secondary sort: BPM diff
-                return a.bpm_diff - b.bpm_diff;
+                // Secondary sort: Absolute BPM difference (proximity to target BPM)
+                const absDiffA = Math.abs(bpm - a.track.bpm);
+                const absDiffB = Math.abs(bpm - b.track.bpm);
+                return absDiffA - absDiffB;
             });
 
             renderMixes(currentSuggestions);
@@ -868,24 +870,53 @@
                 });
             }
 
-            const matches = filteredLibrary.filter(track => {
-                // Búsqueda case-insensitive en todos los campos
+            const matches = filteredLibrary.map(track => {
+                // Calcular puntuación de relevancia
+                let score = 0;
+                
+                // Coincidencia exacta en título (máxima prioridad)
+                const titleExactMatch = track.title && track.title.toLowerCase() === queryLower;
+                if (titleExactMatch) score += 100;
+                
+                // Coincidencia exacta en artista
+                const artistExactMatch = track.artist && track.artist.toLowerCase() === queryLower;
+                if (artistExactMatch) score += 80;
+                
+                // Coincidencia parcial en título
                 const titleMatch = track.title && track.title.toLowerCase().includes(queryLower);
+                if (titleMatch) score += 50;
+                
+                // Coincidencia parcial en artista
                 const artistMatch = track.artist && track.artist.toLowerCase().includes(queryLower);
+                if (artistMatch) score += 30;
+                
+                // Coincidencia en filename
                 const filenameMatch = track.filename && track.filename.toLowerCase().includes(queryLower);
+                if (filenameMatch) score += 20;
+                
+                // Coincidencia en camelot o BPM (menor prioridad)
                 const camelotMatch = track.camelot && track.camelot.toLowerCase().includes(queryLower);
+                if (camelotMatch) score += 10;
+                
                 const bpmMatch = track.bpm && track.bpm.toString().includes(query);
+                if (bpmMatch) score += 5;
                 
-                // Búsqueda por palabras individuales (más inteligente)
+                // Búsqueda por palabras individuales
                 const words = queryLower.split(/\s+/).filter(word => word.length > 1);
-                const wordMatch = words.length > 0 && words.some(word => 
-                    (track.title && track.title.toLowerCase().includes(word)) ||
-                    (track.artist && track.artist.toLowerCase().includes(word)) ||
-                    (track.filename && track.filename.toLowerCase().includes(word))
-                );
+                if (words.length > 0) {
+                    const wordMatch = words.some(word => 
+                        (track.title && track.title.toLowerCase().includes(word)) ||
+                        (track.artist && track.artist.toLowerCase().includes(word))
+                    );
+                    if (wordMatch) score += 15;
+                }
                 
-                return titleMatch || artistMatch || filenameMatch || camelotMatch || bpmMatch || wordMatch;
-            }).slice(0, 15);
+                return { track, score };
+            })
+            .filter(item => item.score > 0) // Solo resultados con puntuación
+            .sort((a, b) => b.score - a.score) // Ordenar por relevancia (mayor puntuación primero)
+            .map(item => item.track)
+            .slice(0, 25); // Mostrar más resultados
 
             renderSearchResults(matches);
         });
@@ -1481,10 +1512,10 @@
             tracks.forEach((track, index) => {
                 // Calculate duration
                 let duration = track.duration || 0;
-                // Try to find duration from library if missing
-                if (!duration && typeof library !== 'undefined') {
-                    let libTrack = null;
-                    
+                let libTrack = null;
+                
+                // Try to find track in library for additional info
+                if (typeof library !== 'undefined') {
                     // 1. Try exact path match
                     if (track.filepath || track.path) {
                         const searchPath = track.filepath || track.path;
@@ -1501,7 +1532,8 @@
                          libTrack = library.find(t => t.filename === track.filename);
                     }
 
-                    if (libTrack && libTrack.duration) {
+                    // Update duration from library if missing
+                    if (!duration && libTrack && libTrack.duration) {
                         duration = libTrack.duration;
                         track.duration = duration; // Update track object locally
                     }
@@ -1563,6 +1595,7 @@
                                 <span>${Math.round(track.bpm)} BPM</span>
                                 <span class="text-slate-600">•</span>
                                 <span class="font-mono text-slate-300">${formatDuration(duration)}</span>
+                                ${(track.bitrate || (libTrack && libTrack.bitrate)) ? `<span class="text-slate-600">•</span><span class="text-purple-500">${formatBitrate(track.bitrate || libTrack.bitrate)}</span>` : ''}
                             </div>
                         </div>
                     </div>

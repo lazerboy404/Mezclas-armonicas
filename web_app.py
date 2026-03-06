@@ -3,6 +3,7 @@ import os
 import audio_manager
 import json
 import hashlib
+import re
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -13,18 +14,111 @@ app = Flask(__name__)
 cred = credentials.Certificate("firebase-service-account.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+KNOWN_AUDIO_EXTENSIONS = ('.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg')
+
+def normalize_path(path):
+    if not path:
+        return ''
+    return str(path).replace('\\', '/')
+
+def extract_folder_path(path):
+    normalized = normalize_path(path).rstrip('/')
+    if not normalized:
+        return ''
+    if '/' not in normalized:
+        return ''
+    return normalized.rsplit('/', 1)[0]
+
+def extract_folder_name(folder_path):
+    normalized = normalize_path(folder_path).rstrip('/')
+    if not normalized:
+        return ''
+    return normalized.rsplit('/', 1)[-1]
+
+def compact_folder_path(folder_path, max_segments=2):
+    normalized = normalize_path(folder_path).rstrip('/')
+    if not normalized:
+        return ''
+    drive_match = re.match(r'^([a-zA-Z]:)(/.*)?$', normalized)
+    if drive_match:
+        drive = drive_match.group(1).upper()
+        tail = drive_match.group(2) or ''
+        parts = [p for p in tail.split('/') if p]
+        if not parts:
+            return drive
+        return f"{drive} /{'/'.join(parts[-max_segments:])}"
+    parts = [p for p in normalized.split('/') if p]
+    if len(parts) <= max_segments:
+        return normalized
+    return f".../{'/'.join(parts[-max_segments:])}"
+
+def strip_audio_extension(value):
+    if not isinstance(value, str):
+        return ''
+    trimmed = value.strip()
+    lower = trimmed.lower()
+    for ext in KNOWN_AUDIO_EXTENSIONS:
+        if lower.endswith(ext):
+            return trimmed[:-len(ext)].strip()
+    return trimmed
+
+def normalize_track_fields(track_info):
+    if not isinstance(track_info, dict):
+        return track_info
+
+    track_path = track_info.get('path', '')
+    if not track_info.get('filename') and track_path:
+        track_info['filename'] = os.path.basename(normalize_path(track_path))
+
+    filename = track_info.get('filename', '')
+    cleaned_filename = strip_audio_extension(filename)
+    title = track_info.get('title')
+
+    if isinstance(title, str):
+        trimmed_title = title.strip()
+        if trimmed_title:
+            if cleaned_filename and strip_audio_extension(trimmed_title).lower() == cleaned_filename.lower():
+                track_info['title'] = strip_audio_extension(trimmed_title)
+        elif cleaned_filename:
+            track_info['title'] = cleaned_filename
+    elif cleaned_filename:
+        track_info['title'] = cleaned_filename
+    return track_info
+
+def extract_track_info(cache_entry, fallback_path=''):
+    if not isinstance(cache_entry, dict):
+        return {}
+    nested_info = cache_entry.get('info')
+    if isinstance(nested_info, dict) and nested_info:
+        track_info = dict(nested_info)
+        if fallback_path and not track_info.get('path'):
+            track_info['path'] = fallback_path
+        track_info['file_size'] = cache_entry.get('size', track_info.get('file_size', 0))
+        track_info = normalize_track_fields(track_info)
+        track_path = track_info.get('path', '')
+        if not track_info.get('folder'):
+            track_info['folder'] = extract_folder_path(track_path)
+        track_info['folder_name'] = extract_folder_name(track_info.get('folder', ''))
+        track_info['folder_display'] = compact_folder_path(track_info.get('folder', ''))
+        return track_info
+    track_info = dict(cache_entry)
+    if fallback_path and not track_info.get('path'):
+        track_info['path'] = fallback_path
+    track_info['file_size'] = track_info.get('file_size', cache_entry.get('size', 0))
+    track_info = normalize_track_fields(track_info)
+    track_path = track_info.get('path', '')
+    if not track_info.get('folder'):
+        track_info['folder'] = extract_folder_path(track_path)
+    track_info['folder_name'] = extract_folder_name(track_info.get('folder', ''))
+    track_info['folder_display'] = compact_folder_path(track_info.get('folder', ''))
+    return track_info
 
 # Cargar caché al inicio
 def get_library():
     cache = audio_manager.load_cache()
     library = []
     for path, data in cache.items():
-        info = data.get('info', {})
-        # Agregar tamaño para comparación rápida
-        info['file_size'] = data.get('size', 0)
-        # Asegurar que la información de carpeta esté incluida
-        if 'folder' not in info and 'path' in info:
-            info['folder'] = os.path.dirname(info['path'])
+        info = extract_track_info(data, path)
         if info.get('camelot') and info.get('camelot') != '---':
             library.append(info)
     return library
@@ -74,13 +168,12 @@ def get_analyzed_folders():
     cache = audio_manager.load_cache()
     folders = set()
     
-    for file_data in cache.values():
-        info = file_data.get('info', {})
+    for cache_path, file_data in cache.items():
+        info = extract_track_info(file_data, cache_path)
         if 'folder' in info:
             folders.add(info['folder'])
         elif 'path' in info:
-            # Para compatibilidad con versiones anteriores
-            folder = os.path.dirname(info['path'])
+            folder = extract_folder_path(info['path'])
             folders.add(folder)
     
     return sorted(list(folders))
@@ -314,6 +407,15 @@ def get_track_info():
     """Obtener información de una canción desde el cache."""
     path = request.args.get('path')
     filename = request.args.get('filename')
+    allowed_folders_raw = request.args.get('allowed_folders')
+    allowed_folders = None
+    if allowed_folders_raw:
+        try:
+            parsed = json.loads(allowed_folders_raw)
+            if isinstance(parsed, list):
+                allowed_folders = parsed
+        except Exception:
+            allowed_folders = None
     
     if not path and not filename:
         return jsonify({'error': 'Path or filename parameter required'}), 400
@@ -322,35 +424,29 @@ def get_track_info():
     
     # Buscar por path (comparación de strings directa)
     if path:
-        # En modo JSON, path es solo un identificador string
         if path in cache:
-            return get_track_suggestions(cache[path])
+            return get_track_suggestions(cache[path], path, allowed_folders)
     
     # Buscar por nombre de archivo
     if filename:
-        # Buscar en todo el cache por coincidencia de nombre
         for cache_path, track_data in cache.items():
-            track_info = track_data.get('info', {})
+            track_info = extract_track_info(track_data, cache_path)
             cache_filename = track_info.get('filename', '')
-            
-            # Comparar con el nombre del archivo guardado en los metadatos
             if cache_filename == filename:
-                return get_track_suggestions(track_data)
+                return get_track_suggestions(track_data, cache_path, allowed_folders)
         
-        # Si no encuentra coincidencia exacta, buscar coincidencias parciales
         for cache_path, track_data in cache.items():
-            track_info = track_data.get('info', {})
+            track_info = extract_track_info(track_data, cache_path)
             cache_filename = track_info.get('filename', '')
-            
             if filename in cache_filename:
-                return get_track_suggestions(track_data)
+                return get_track_suggestions(track_data, cache_path, allowed_folders)
         
     return jsonify({'error': 'Track not found in cache'}), 404
 
-def get_track_suggestions(track_data):
+def get_track_suggestions(track_data, fallback_path='', allowed_folders=None):
     """Obtener sugerencias para una pista."""
-    track_info = track_data.get('info', {})
-    suggestions = find_matches(track_info)
+    track_info = extract_track_info(track_data, fallback_path)
+    suggestions = find_matches(track_info, allowed_folders)
     
     return jsonify({
         'track': track_info,

@@ -745,6 +745,30 @@
             }, 200);
         }
 
+        function formatFolderDisplay(path) {
+            if (!path) return '';
+            const normalized = path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
+            const driveMatch = normalized.match(/^([a-zA-Z]:)(\/.*)?$/);
+            if (!driveMatch) {
+                const parts = normalized.split('/').filter(Boolean);
+                if (parts.length <= 2) return normalized;
+                return `.../${parts.slice(-2).join('/')}`;
+            }
+            const drive = driveMatch[1].toUpperCase();
+            const parts = (driveMatch[2] || '').split('/').filter(Boolean);
+            if (parts.length === 0) return drive;
+            if (parts.length === 1) return `${drive} /${parts[0]}`;
+            const compact = parts.slice(-2).join('/');
+            return `${drive} /${compact}`;
+        }
+
+        function getFolderBadgeLabel(track) {
+            if (!track) return '';
+            if (track.folder_display) return track.folder_display;
+            const folderPath = track.folder || '';
+            return formatFolderDisplay(folderPath);
+        }
+
         function loadFolders() {
             fetch('/api/folders')
                 .then(res => res.json())
@@ -756,6 +780,7 @@
                     }
                     folders.forEach(path => {
                         const isChecked = enabledFolders.has(path);
+                        const compactPath = formatFolderDisplay(path);
                         const item = document.createElement('div');
                         item.className = 'flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700 group transition';
                         item.innerHTML = `
@@ -764,7 +789,7 @@
                                     onchange="toggleFolder('${path.replace(/\\/g, '\\\\')}', this.checked)" 
                                     class="w-4 h-4 text-cyan-500 rounded border-slate-600 focus:ring-cyan-500 bg-slate-700 cursor-pointer flex-shrink-0"
                                     title="Incluir en búsqueda">
-                                <span class="text-sm text-slate-300 truncate font-mono select-none" title="${path}">${path}</span>
+                                <span class="text-sm text-slate-300 truncate font-mono select-none" title="${path}">${compactPath}</span>
                             </div>
                             <div class="text-xs text-slate-500 px-2 bg-slate-900 rounded ml-2">
                                 Detectada automáticamente
@@ -936,8 +961,8 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <div class="font-medium text-white truncate">${track.title || track.filename}</div>
-                                ${track.folder ? `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600 shrink-0" title="${track.folder}">
-                                    📁 ${track.folder.split('\\').pop()}
+                                ${track.folder ? `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600 shrink-0 max-w-[240px]" title="${track.folder}">
+                                    <span class="inline-block truncate">📁 ${getFolderBadgeLabel(track)}</span>
                                 </span>` : ''}
                             </div>
                             <div class="text-xs text-slate-400 truncate">${track.artist || 'Unknown'}</div>
@@ -1009,10 +1034,14 @@
 
             const filePath = file.path || '';
             const fileName = file.name;
+            const selectedFolders = foldersLoaded ? Array.from(enabledFolders) : [];
             
             let apiUrl = '/api/track-info?';
             if (filePath) apiUrl += `path=${encodeURIComponent(filePath)}&`;
             apiUrl += `filename=${encodeURIComponent(fileName)}`;
+            if (selectedFolders.length > 0) {
+                apiUrl += `&allowed_folders=${encodeURIComponent(JSON.stringify(selectedFolders))}`;
+            }
             
             fetch(apiUrl)
             .then(res => {
@@ -1029,8 +1058,8 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 
-                if (foldersLoaded) {
-                     formData.append('allowed_folders', JSON.stringify(Array.from(enabledFolders)));
+                if (selectedFolders.length > 0) {
+                     formData.append('allowed_folders', JSON.stringify(selectedFolders));
                 }
 
                 fetch('/api/analyze', {
@@ -1074,8 +1103,8 @@
             // Actualizar información de carpeta
             const folderEl = document.getElementById('trackFolder');
             if (track.folder) {
-                folderEl.innerHTML = `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600" title="${track.folder}">
-                    📁 ${track.folder.split('\\').pop()}
+                folderEl.innerHTML = `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600 max-w-[320px]" title="${track.folder}">
+                    <span class="inline-block truncate">📁 ${getFolderBadgeLabel(track)}</span>
                 </span>`;
                 folderEl.classList.remove('hidden');
             } else {
@@ -1170,8 +1199,8 @@
                                 <h4 class="font-bold text-white text-lg truncate cursor-pointer hover:text-cyan-400 transition-colors" 
                                     onclick="copyToClipboard('${(track.title || track.filename).replace(/'/g, "\\'")}')" 
                                     title="Click para copiar">${track.title || track.filename}</h4>
-                                ${track.folder ? `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600 shrink-0" title="${track.folder}">
-                                    📁 ${track.folder.split('\\').pop()}
+                                ${track.folder ? `<span class="inline-flex items-center gap-1 bg-slate-700 text-cyan-300 text-xs px-2 py-1 rounded-full border border-slate-600 shrink-0 max-w-[260px]" title="${track.folder}">
+                                    <span class="inline-block truncate">📁 ${getFolderBadgeLabel(track)}</span>
                                 </span>` : ''}
                             </div>
                             <p class="text-slate-400 text-sm truncate">${track.artist || 'Artista Desconocido'}${track.duration ? ` • Duración: ${formatDuration(track.duration)}` : ''}</p>

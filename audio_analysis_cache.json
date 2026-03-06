@@ -15522,94 +15522,121 @@
             "album": "VA - SpaceSynth & ItaloDisco World Vol. 38"
         }
     },
-    "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_9mm_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_9mm_(SkySound.cc).mp3",
-        "filename": "Brutalismus_3000_-_9mm_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 237.96,
-        "dbfs": -8.556919225438197,
-        "key": "F Major",
-        "camelot": "7B",
-        "bpm": 156
+    "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - 9MM.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - 9MM.mp3",
+            "filename": "Brutalismus 3000 - 9MM.mp3",
+            "bitrate": 0,
+            "duration": 237.96,
+            "dbfs": -8.556919225438197,
+            "key": "F Major",
+            "camelot": "7B",
+            "bpm": 156
+        },
+        "size": 9529981
     },
-    "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_DIE_LIEBE_KOMMT_NICHT_AUS_BERLIN_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_DIE_LIEBE_KOMMT_NICHT_AUS_BERLIN_(SkySound.cc).mp3",
-        "filename": "Brutalismus_3000_-_DIE_LIEBE_KOMMT_NICHT_AUS_BERLIN_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 230.7134693877551,
-        "dbfs": -18.579503127766422,
-        "key": "B Major",
-        "camelot": "1B",
-        "bpm": 110
+    "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - DIE LIEBE KOMMT NICHT AUS BERLIN.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - DIE LIEBE KOMMT NICHT AUS BERLIN.mp3",
+            "filename": "Brutalismus 3000 - DIE LIEBE KOMMT NICHT AUS BERLIN.mp3",
+            "bitrate": 0,
+            "duration": 230.7134693877551,
+            "dbfs": -18.579503127766422,
+            "key": "B Major",
+            "camelot": "1B",
+            "bpm": 110
+        },
+        "size": 9239942
     },
-    "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_Europatr_ume_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_Europatr_ume_(SkySound.cc).mp3",
-        "filename": "Brutalismus_3000_-_Europatr_ume_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 216.6334693877551,
-        "dbfs": -7.569516784037772,
-        "key": "A Minor",
-        "camelot": "8A",
-        "bpm": 167
+    "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - EUROPATR UME.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - EUROPATR UME.mp3",
+            "filename": "Brutalismus 3000 - EUROPATR UME.mp3",
+            "bitrate": 0,
+            "duration": 216.6334693877551,
+            "dbfs": -7.569516784037772,
+            "key": "A Minor",
+            "camelot": "8A",
+            "bpm": 167
+        },
+        "size": 8676159
     },
-    "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_JE_N_EXISTE_PAS_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_JE_N_EXISTE_PAS_(SkySound.cc).mp3",
-        "filename": "Brutalismus_3000_-_JE_N_EXISTE_PAS_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 280.26775510204084,
-        "dbfs": -9.44253922770285,
-        "key": "G Minor",
-        "camelot": "6A",
-        "bpm": 157
+    "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - JE N EXISTE PAS.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - JE N EXISTE PAS.mp3",
+            "filename": "Brutalismus 3000 - JE N EXISTE PAS.mp3",
+            "bitrate": 0,
+            "duration": 280.26775510204084,
+            "dbfs": -9.44253922770285,
+            "key": "G Minor",
+            "camelot": "6A",
+            "bpm": 157
+        },
+        "size": 11224079
     },
-    "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_Romantika_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Brutalismus_3000_-_Romantika_(SkySound.cc).mp3",
-        "filename": "Brutalismus_3000_-_Romantika_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 250.2008163265306,
-        "dbfs": -7.582198768533481,
-        "key": "F Minor",
-        "camelot": "4A",
-        "bpm": 161
+    "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - ROMANTIKA.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Brutalismus 3000 - ROMANTIKA.mp3",
+            "filename": "Brutalismus 3000 - ROMANTIKA.mp3",
+            "bitrate": 0,
+            "duration": 250.2008163265306,
+            "dbfs": -7.582198768533481,
+            "key": "F Minor",
+            "camelot": "4A",
+            "bpm": 161
+        },
+        "size": 10020193
     },
-    "C:/Users/Einar/Desktop/music yachi\\ISOxo_Brutalismus_3000_-_SPIRAL_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\ISOxo_Brutalismus_3000_-_SPIRAL_(SkySound.cc).mp3",
-        "filename": "ISOxo_Brutalismus_3000_-_SPIRAL_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 178.31183673469388,
-        "dbfs": -6.603256447690308,
-        "key": "A Major",
-        "camelot": "11B",
-        "bpm": 140
+    "C:/Users/Einar/Desktop/music yachi/Isoxo Brutalismus 3000 - SPIRAL.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Isoxo Brutalismus 3000 - SPIRAL.mp3",
+            "filename": "Isoxo Brutalismus 3000 - SPIRAL.mp3",
+            "bitrate": 0,
+            "duration": 178.31183673469388,
+            "dbfs": -6.603256447690308,
+            "key": "A Major",
+            "camelot": "11B",
+            "bpm": 140
+        },
+        "size": 7141760
     },
-    "C:/Users/Einar/Desktop/music yachi\\PREMIERE_Brutalismus_3000_-_Satan_Was_A_Baby_Boomer_DURCH_(Rilds.com).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\PREMIERE_Brutalismus_3000_-_Satan_Was_A_Baby_Boomer_DURCH_(Rilds.com).mp3",
-        "filename": "PREMIERE_Brutalismus_3000_-_Satan_Was_A_Baby_Boomer_DURCH_(Rilds.com).mp3",
-        "bitrate": 0,
-        "duration": 427.04979591836735,
-        "dbfs": -11.755433416434528,
-        "key": "G Major",
-        "camelot": "9B",
-        "bpm": 103
+    "C:/Users/Einar/Desktop/music yachi/Premiere Brutalismus 3000 - SATAN WAS A BABY BOOMER DURCH (RILDS COM).mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Premiere Brutalismus 3000 - SATAN WAS A BABY BOOMER DURCH (RILDS COM).mp3",
+            "filename": "Premiere Brutalismus 3000 - SATAN WAS A BABY BOOMER DURCH (RILDS COM).mp3",
+            "bitrate": 0,
+            "duration": 427.04979591836735,
+            "dbfs": -11.755433416434528,
+            "key": "G Major",
+            "camelot": "9B",
+            "bpm": 103
+        },
+        "size": 6841195
     },
-    "C:/Users/Einar/Desktop/music yachi\\ROSAL_A_ft._Bj_rk_ft._Yves_Tumor_-_Berghain_vqMusic_(SkySound.cc).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\ROSAL_A_ft._Bj_rk_ft._Yves_Tumor_-_Berghain_vqMusic_(SkySound.cc).mp3",
-        "filename": "ROSAL_A_ft._Bj_rk_ft._Yves_Tumor_-_Berghain_vqMusic_(SkySound.cc).mp3",
-        "bitrate": 0,
-        "duration": 178.8865306122449,
-        "dbfs": -10.112335127023101,
-        "key": "D Major",
-        "camelot": "10B",
-        "bpm": 126
+    "C:/Users/Einar/Desktop/music yachi/Rosal A Ft Bj Rk Ft Yves Tumor - BERGHAIN VQMUSIC.mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Rosal A Ft Bj Rk Ft Yves Tumor - BERGHAIN VQMUSIC.mp3",
+            "filename": "Rosal A Ft Bj Rk Ft Yves Tumor - BERGHAIN VQMUSIC.mp3",
+            "bitrate": 0,
+            "duration": 178.8865306122449,
+            "dbfs": -10.112335127023101,
+            "key": "D Major",
+            "camelot": "10B",
+            "bpm": 126
+        },
+        "size": 2866591
     },
-    "C:/Users/Einar/Desktop/music yachi\\Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3": {
-        "path": "C:/Users/Einar/Desktop/music yachi\\Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3",
-        "filename": "Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3",
-        "bitrate": 0,
-        "duration": 228.858775,
-        "dbfs": -10.619352571149104,
-        "key": "Bb Minor",
-        "camelot": "3A",
-        "bpm": 161
+    "C:/Users/Einar/Desktop/music yachi/Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3": {
+        "info": {
+            "path": "C:/Users/Einar/Desktop/music yachi/Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3",
+            "filename": "Yung Hurn ALLIENE (Brutalismus 3000 RMX x Seb Gale Vocal Intro Edit).mp3",
+            "bitrate": 0,
+            "duration": 228.858775,
+            "dbfs": -10.619352571149104,
+            "key": "Bb Minor",
+            "camelot": "3A",
+            "bpm": 161
+        },
+        "size": 9158447
     }
 }

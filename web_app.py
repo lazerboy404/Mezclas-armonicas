@@ -5,6 +5,9 @@ import json
 import hashlib
 import re
 from datetime import datetime
+import threading
+import time
+import urllib.request
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -675,6 +678,33 @@ def start_scan():
 @app.route('/api/scan/status')
 def scan_status():
     return jsonify(SCAN_STATUS)
+
+# --- Keep-Alive (Render Free Tier) ---
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'alive', 'timestamp': datetime.now().isoformat()})
+
+def keep_alive():
+    """Auto-ping cada 13 minutos para evitar que Render duerma el servicio."""
+    url = os.environ.get('RENDER_EXTERNAL_URL')
+    if not url:
+        print("[Keep-Alive] RENDER_EXTERNAL_URL no configurada. Auto-ping desactivado (modo local).")
+        return
+    
+    ping_url = f"{url}/health"
+    print(f"[Keep-Alive] Activado. Ping cada 13 min a {ping_url}")
+    
+    while True:
+        time.sleep(780)  # 13 minutos
+        try:
+            req = urllib.request.urlopen(ping_url, timeout=10)
+            print(f"[Keep-Alive] Ping OK ({req.getcode()}) - {datetime.now().strftime('%H:%M:%S')}")
+        except Exception as e:
+            print(f"[Keep-Alive] Ping falló: {e}")
+
+# Iniciar keep-alive en segundo plano
+keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+keep_alive_thread.start()
 
 if __name__ == '__main__':
     print("Iniciando servidor web...")
